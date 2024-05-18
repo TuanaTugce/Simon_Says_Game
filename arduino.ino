@@ -1,3 +1,5 @@
+#include <Arduino.h>
+
 #define CHOICE_OFF      0 //Used to control LEDs
 #define CHOICE_NONE     0 //Used to check buttons
 #define CHOICE_RED  (1 << 0)
@@ -31,6 +33,7 @@ byte delay_time = 150; // Amount of time between two leds
 
 void setup()
 {
+  Serial.begin(9600); // Initialize serial communication
   pinMode(BUTTON_RED, INPUT_PULLUP);
   pinMode(BUTTON_GREEN, INPUT_PULLUP);
   pinMode(BUTTON_BLUE, INPUT_PULLUP);
@@ -49,37 +52,34 @@ void setup()
 
 void loop()
 {
-  attractMode(); // Blink lights while waiting for user to press a button
-  // Indicate the start of game play
+  wait_to_start(); // Blink lights while waiting for user to start
+ 
   setLEDs(CHOICE_RED | CHOICE_GREEN | CHOICE_BLUE | CHOICE_YELLOW); // Turn all LEDs on
 
   delay(1000);
   setLEDs(CHOICE_OFF); // Turn off LEDs
   delay(250);
 
-
-    // Play memory game
-    if (play_memory() == true) 
-      play_winner(); // Player won, play winner tones
-    else 
-      play_loser(); // Player lost, play loser tones
-  
+  if (play_memory() == true) 
+    play_winner(); // Player won, play winner tones
+  else 
+    play_loser(); // Player lost, play loser tones 
 }
 
-// Returns 0 if player loses, or 1 if player wins
+// Returns 0 if player loses, 1 if player wins
 boolean play_memory(void)
 {
   randomSeed(millis()); // Seed the random generator with random amount of millis()
 
-  gameRound = 0; // Reset the game to the beginning
+  gameRound = 0; // Reset the game 
 
   while (gameRound < ROUNDS_TO_WIN) 
   {
-    add_to_moves(); // Add a button to the current moves, then play them back
+    add_to_moves(); // Add a button to the current moves
 
-    playMoves(); // Play back the current game board
+    playMoves(); // Plays back the current game sequence
 
-    // Then require the player to repeat the sequence.
+    // wants the player to repeat the sequence.
     for (byte currentMove = 0 ; currentMove < gameRound ; currentMove++)
     {
       byte choice = wait_for_button(); // See what button the user presses
@@ -121,8 +121,6 @@ void add_to_moves(void)
 }
 
 // Lights a given LEDs
-// Pass in a byte that is made up from CHOICE_RED, CHOICE_YELLOW, etc
-
 void setLEDs(byte leds)
 {
   if ((leds & CHOICE_RED) != 0)
@@ -147,8 +145,9 @@ void setLEDs(byte leds)
     digitalWrite(LED_YELLOW, HIGH);
   else
     digitalWrite(LED_YELLOW, LOW);
+// Send LED states to Processing
+  Serial.write(leds);
 }
-
 
 // Wait for a button to be pressed. 
 // Returns one of LED colors (LED_RED, etc.) if successful, 0 if timed out
@@ -169,7 +168,15 @@ byte wait_for_button(void)
 
       delay(10); // This helps with debouncing and accidental double taps
 
+      // Send button press to Processing
+     // Serial.write(button);
       return button;
+    }
+    if (Serial.available() > 0)
+    {
+      byte serialButton = Serial.read();
+      toner(serialButton, 150); // Play the button the user just pressed
+      return serialButton;
     }
   }
 
@@ -190,11 +197,6 @@ byte checkButton(void)
 
 
 // Light an LED and play tone
-// Red, upper left:     440Hz - 2.272ms - 1.136ms pulse
-// Green, upper right:  880Hz - 1.136ms - 0.568ms pulse
-// Blue, lower left:    587.33Hz - 1.702ms - 0.851ms pulse
-// Yellow, lower right: 784Hz - 1.276ms - 0.638ms pulse
-
 void toner(byte which, int buzz_length_ms)
 {
 
@@ -260,6 +262,8 @@ void play_winner(void)
 
   setLEDs(CHOICE_RED | CHOICE_YELLOW);
   winner_sound();
+
+  Serial.write(100); // Send a win indicator to processing
 }
 
 // Play the winner sound
@@ -280,8 +284,6 @@ void winner_sound(void)
     }
   }
 }
-
-
 // Play the loser sound/lights
 void play_loser(void)
 {
@@ -296,10 +298,12 @@ void play_loser(void)
 
   setLEDs(CHOICE_BLUE | CHOICE_YELLOW);
  buzz_sound(255, 1500);
+
+ Serial.write(101); // Send a loss indicator to processing
 }
 
-// Show an "attract mode" display while waiting for user to press button.
-void attractMode(void)
+// while waiting leds lightens in a sequence
+void wait_to_start(void)
 {
   while(1) 
   {
