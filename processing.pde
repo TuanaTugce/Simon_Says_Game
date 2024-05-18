@@ -29,72 +29,67 @@ void draw() {
     println("Received: " + incomingByte);
   }
   
-  if(incomingByte == 100)
-  {
+  if(incomingByte == 100) {
     gameWon = true;
     gameOver = true;
     messageTimer = MESSAGE_DURATION;
-  }else if(incomingByte == 101)
-  {
+  } else if(incomingByte == 101) {
     gameWon = false;
     gameOver = true;
     messageTimer = MESSAGE_DURATION;
   }
   
   // Light up the corresponding LEDs on the Processing window
+  stroke(255); // Set the stroke to white
+  
   if ((incomingByte & 2) != 0) {
     fill(0, 255, 0); // Green
-    ellipse(50, height/2, 50, 50);
   } else {
     noFill();
-    ellipse(50, height/2, 50, 50);
   }
+  ellipse(50, height / 2, 50, 50);
   
   if ((incomingByte & 4) != 0) {
     fill(0, 0, 255); // Blue
-    ellipse(150, height/2, 50, 50);
   } else {
     noFill();
-    ellipse(150, height/2, 50, 50);
   }
+  ellipse(150, height / 2, 50, 50);
   
   if ((incomingByte & 8) != 0) {
     fill(255, 255, 0); // Yellow
-    ellipse(250, height/2, 50, 50);
   } else {
     noFill();
-    ellipse(250, height/2, 50, 50);
   }
+  ellipse(250, height / 2, 50, 50);
   
   if ((incomingByte & 1) != 0) {
     fill(255, 0, 0); // Red
-    ellipse(350, height/2, 50, 50);
   } else {
     noFill();
-    ellipse(350, height/2, 50, 50);
   }
+  ellipse(350, height / 2, 50, 50);
   
-  if(gameOver){
-    if(messageTimer >0) {
+  if(gameOver) {
+    if(messageTimer > 0) {
       textAlign(CENTER);
       textSize(32);
       fill(255);
       
-      if(gameWon){
-        text("Game Won",width / 2, height - 50);
+      if(gameWon) {
+        text("Game Won", width / 2, height - 50);
+      } else {
+        text("Game Over", width / 2, height - 50);
+      }
+      messageTimer--;
+    } else {
+      // Reset game state after message duration
+      gameOver = false;
+      incomingByte = -1;
+      gameWon = false;
+      messageTimer = 0;
     }
-    else{
-      text("Game Over", width / 2, height -50);
-    }
-    messageTimer --;
-  } else{
-    //Reset game state after message duration
-    gameOver = false;
-    incomingByte = -1;
-    gameWon = false;
-    messageTimer = 0;
   }
- }
 }
 
 void mousePressed() {
